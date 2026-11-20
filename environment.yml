@@ -1,0 +1,16 @@
+# Rename the environment to match the repository, then pin versions once the analysis works:
+#   conda env export --from-history > environment.yml
+name: REPO_NAME
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - pytest
+  - pandas
+  - matplotlib
+  # R side (uncomment what the project needs)
+  # - r-base=4.3
+  # - r-sommer
+  # - r-bglr
+  # - r-qtl2

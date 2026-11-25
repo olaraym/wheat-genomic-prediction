@@ -8,9 +8,19 @@ family does it best, and does modelling genotype × environment (G×E) interacti
 **Why it matters.** Genomic prediction lets breeders rank new lines from DNA alone, before costly multi-environment
 yield trials. Its value depends on how accurate the predictions are and under which conditions.
 
-**Status:** Week 1 of 4 complete (Nov 2026): data checked and the published benchmark reproduced, identically on
-Linux and Windows. Week 2 (single-environment model comparison) code is ready to run. Full plan:
+**Status:** Weeks 1–2 of 4 complete (Nov 2026): benchmark reproduced, and six models compared in four environments.
+All results reproduced identically on Linux and Windows. Next: multi-environment (G×E) models. Full plan:
 [P1 analysis plan](docs/PLAN.md).
+
+**Findings so far**
+
+1. **Yield behaves as a many-small-genes trait.** BayesB and Bayesian LASSO, which allow large single-marker effects,
+   are within 0.01 of GBLUP in every environment.
+2. **A non-linear marker model (RKHS) predicts best**, beating GBLUP by 0.04–0.07 in three of four environments, in
+   every fold set, and matching the RKHS results published for this dataset.
+3. **Markers beat pedigree in only two of four environments.** In E3 and E4 the pedigree predicts as well as markers.
+4. **Accuracy depends heavily on relatedness.** Predicting one genetic group from the other cuts GBLUP's predictive
+   ability by 0.19 on average, compared with random splits of the same size.
 
 ## Data
 
@@ -29,7 +39,7 @@ CIMMYT historical bread wheat lines, shipped with the BGLR R package (`data(whea
 **Data checks** ([`results/00_data_checks.md`](results/00_data_checks.md))
 
 - No missing values; yield is already standardized.
-- Reproduced identically on Linux and on Windows (same seeds, same numbers to three decimals).
+- Weeks 1 and 2 reproduced identically on Linux and on Windows (same seeds, same numbers to three decimals).
 - **96 of 1,279 markers have minor allele frequency below 0.05**, although the documentation says such markers were
   removed. They are kept, to match the benchmark; their effect is tested later.
 - **Two genetic groups** are visible on the first marker principal component (11.3% of variance): relevant for how
@@ -55,28 +65,59 @@ All 8 comparisons fall within the ±0.05 tolerance fixed in advance. Marker BLUP
 remains on the published fold partition (0.524), so it most likely reflects how the shrinkage was estimated (REML here),
 not the folds. GBLUP and marker ridge BLUP gave identical predictions in all 440 fits, as theory requires.
 
-## Week 2: single-environment models (to run)
+## Week 2 results: single-environment models
 
-Six models, each fitted one environment at a time on the same fold sets as Week 1 (the published partition plus five
-random 10-fold sets), so every comparison is paired:
+Six models, each fitted one environment at a time on the same six fold sets (the published partition plus five random
+10-fold sets), so every comparison is paired. Full tables: [`results/02_single_env.md`](results/02_single_env.md).
 
-| Model | Assumption about the genetics | Package |
-| --- | --- | --- |
-| Pedigree BLUP | relatives share yield in proportion to pedigree kinship | rrBLUP |
-| GBLUP (reference) | many small additive marker effects | rrBLUP |
-| BayesB | most markers have no effect, a few larger ones | BGLR |
-| Bayesian LASSO | effects shrink unevenly; large ones shrink less | BGLR |
-| RKHS (Gaussian kernel) | similarity is a non-linear function of marker distance | BGLR |
-| Pedigree + markers | both relationship sources together | BGLR |
+**Predictive ability** (mean over 6 fold sets; SD across fold sets 0.003–0.018)
 
-Three scripts:
+| Model | E1 | E2 | E3 | E4 |
+| --- | --- | --- | --- | --- |
+| Pedigree BLUP | 0.424 | 0.409 | 0.399 | 0.441 |
+| GBLUP (reference) | 0.530 | 0.493 | 0.390 | 0.454 |
+| BayesB | 0.523 | 0.487 | 0.390 | 0.452 |
+| Bayesian LASSO | 0.527 | 0.491 | 0.391 | 0.454 |
+| **RKHS (Gaussian kernel)** | **0.598** | **0.497** | 0.431 | **0.514** |
+| Pedigree + markers | 0.551 | **0.497** | **0.434** | 0.492 |
+| *RKHS, Crossa et al. (2010)* | *0.601* | *0.494* | *0.445* | *0.524* |
 
-- `02_single_env_models.R`: the comparison; predictive ability, Spearman, top-20% selection overlap, MSE; paired
-  differences from GBLUP with the rule fixed in advance (|difference| >= 0.02 and 5 of 6 fold sets agree).
-- `02b_convergence.R`: checks every Bayesian chain (effective sample size >= 100, stable halves). Bayesian LASSO runs
-  twice as many iterations because its chains mix more slowly.
-- `02c_structure_cv.R`: trains on one of the two genetic groups and predicts the other, against random splits of the
-  same size, to measure how much accuracy depends on relatedness between training and test lines.
+![Predictive ability by model](results/figures/02_predictive_ability.png)
+
+**Against GBLUP**, using the rule fixed in advance (|difference| ≥ 0.02 and at least 5 of 6 fold sets agree):
+
+- **H1, markers beat pedigree: partly supported.** GBLUP beats pedigree BLUP in E1 (+0.106) and E2 (+0.084), but not
+  in E3 or E4. This fits Step 0, where pedigree-based heritability exceeded marker-based heritability in E3 (0.58 vs.
+  0.42) and E4 (0.54 vs. 0.43): the pedigree captures genetic signal that these 1,279 DArT markers miss there.
+- **H2, Bayesian models ≈ GBLUP: supported.** BayesB and Bayesian LASSO never differ from GBLUP by more than 0.01.
+- **RKHS is better than GBLUP** in E1 (+0.067), E3 (+0.041) and E4 (+0.060), the same in E2. Its Gaussian kernel
+  treats genetic similarity non-linearly, so it can capture interactions among loci that an additive model misses.
+  Its scores match those published by Crossa et al. (2010) within 0.015, an independent check of the pipeline.
+- **Pedigree + markers is better than GBLUP** in E1, E3 and E4 (+0.02 to +0.04): combining the two helps where the
+  pedigree carries extra information.
+
+**Correlation and selection can disagree.** In E1, pedigree BLUP has the lowest predictive ability (0.42) but the
+highest overlap with the truly top 20% of lines (0.39, vs. 0.31 for GBLUP). The best model overall is not necessarily
+the best at picking the top lines, which matters for breeders.
+
+**MCMC convergence** ([`results/02b_convergence.md`](results/02b_convergence.md)): all 16 Bayesian chains pass
+(effective sample size ≥ 100, halves agree within 10%). Bayesian LASSO needed twice the iterations to get there.
+
+**Prediction across genetic groups** ([`results/02c_structure.md`](results/02c_structure.md))
+
+The markers split the lines into two groups (253 and 346 lines). Training on one group and predicting the other,
+compared with random splits of the same sizes:
+
+| Environment | GBLUP, across groups | GBLUP, random split | Drop | Pedigree, across groups | Pedigree, random split |
+| --- | --- | --- | --- | --- | --- |
+| E1 | 0.154 | 0.471 | 0.317 | 0.048 | 0.347 |
+| E2 | 0.354 | 0.443 | 0.089 | 0.188 | 0.382 |
+| E3 | 0.236 | 0.336 | 0.100 | 0.173 | 0.355 |
+| E4 | 0.168 | 0.404 | 0.236 | 0.262 | 0.396 |
+
+Across groups, GBLUP loses 0.19 on average and pedigree BLUP 0.20; pedigree prediction in E1 almost vanishes (0.05).
+Random cross-validation therefore describes prediction for lines related to the training set. To predict material
+from a different breeding group, relatives of that group need to be in the training population.
 
 ## Reproduce (Windows, macOS or Linux)
 
@@ -89,7 +130,7 @@ Rscript -e "testthat::test_dir('tests/testthat')"            # 34 checks
 Rscript run_all.R                                            # all steps
 ```
 
-Before the full Week 2 run, time it with a short trial:
+Week 2's comparison takes about 1.5–2 hours on a 12-thread laptop. Time it first with a short trial:
 
 ```bash
 Rscript scripts/02_single_env_models.R --quick               # 1 fold set, short chains; prints a projected full run time

@@ -101,3 +101,65 @@ md_table <- function(df, digits = 3) {
     paste0("|", paste(rep(" --- |", ncol(df)), collapse = "")),
     body)
 }
+
+# ---------------------------------------------------------------- Week 2 additions
+
+#' Gaussian kernel on markers for RKHS regression: K = exp(-h * D / mean(D)),
+#' where D holds squared Euclidean distances between lines' standardized marker profiles.
+#' h = 1 is a common default; larger h makes similarity fall off faster with distance.
+gaussian_kernel <- function(X, h = 1) {
+  keep <- apply(X, 2, sd) > 0
+  Xs <- scale(X[, keep, drop = FALSE])
+  D <- as.matrix(dist(Xs))^2
+  exp(-h * D / mean(D))
+}
+
+#' Share of the truly top `frac` lines (by observed value) that the model also ranks in its top `frac`.
+top_overlap <- function(observed, predicted, frac = 0.2) {
+  k <- ceiling(frac * length(observed))
+  length(intersect(order(-observed)[seq_len(k)], order(-predicted)[seq_len(k)])) / k
+}
+
+#' All Week 2 metrics for one set of out-of-fold predictions.
+cv_metrics <- function(observed, predicted) {
+  data.frame(pearson  = cor(observed, predicted),
+             spearman = cor(observed, predicted, method = "spearman"),
+             top20    = top_overlap(observed, predicted, 0.2),
+             mse      = mean((observed - predicted)^2))
+}
+
+#' Paired verdict for one model vs. a reference across replicates, using the rule fixed in the plan:
+#' a difference counts only if its mean is at least `threshold` AND at least `min_agree` of the
+#' replicates point the same way.
+paired_verdict <- function(diffs, threshold = 0.02, min_agree = 5 / 6) {
+  m <- mean(diffs)
+  agree <- mean(sign(diffs) == sign(m))
+  if (abs(m) >= threshold && agree >= min_agree) {
+    if (m > 0) "better" else "worse"
+  } else {
+    "no meaningful difference"
+  }
+}
+
+#' Simple effective sample size of an MCMC chain: n / (1 + 2 * sum of autocorrelations),
+#' summing lags until the autocorrelation drops below 0.05.
+ess <- function(x) {
+  x <- as.numeric(x)
+  if (length(x) < 10 || var(x) == 0) return(NA_real_)
+  ac <- acf(x, lag.max = min(length(x) - 1, 1000), plot = FALSE)$acf[-1]
+  s <- 0
+  for (r in ac) {
+    if (r < 0.05) break
+    s <- s + r
+  }
+  length(x) / (1 + 2 * s)
+}
+
+#' Read simple command-line flags such as --quick, --reps=5, --iter=12000, --workers=8.
+get_flag <- function(args, name, default) {
+  hit <- grep(paste0("^--", name, "(=|$)"), args, value = TRUE)
+  if (!length(hit)) return(default)
+  if (!grepl("=", hit[1])) return(TRUE)
+  val <- sub(paste0("^--", name, "="), "", hit[1])
+  if (is.numeric(default)) as.numeric(val) else val
+}

@@ -22,6 +22,10 @@ model family does it best?
 | 7 | Genomic heritability and genetic correlations between environments | `results/04_variance_components.csv` |
 | 8 | README, figures, release with DOI | |
 
+**Added in Week 2:** Step 2b (MCMC convergence check) and Step 2c (prediction across the two genetic groups found
+in the marker PCA, against random splits of equal size). rrBLUP is dropped from the comparison because Week 1 showed
+it gives the same predictions as GBLUP in every fit.
+
 **Timeline:** W1 setup + benchmark (done Nov 24) · W2 single-environment models · W3 multi-environment, CV1/CV2 ·
 W4 heritability, report, release.
 

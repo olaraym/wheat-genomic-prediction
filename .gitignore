@@ -4,3 +4,4 @@
 *.Rproj
 results/sessionInfo.txt
 .env
+results/_mcmc/

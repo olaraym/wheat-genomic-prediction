@@ -52,3 +52,46 @@ test_that("genomic heritability lies between 0 and 1", {
   expect_gt(h2, 0)
   expect_lt(h2, 1)
 })
+
+# ---------------------------------------------------------------- Week 2 helpers
+test_that("Gaussian kernel is symmetric with ones on the diagonal", {
+  set.seed(3)
+  X <- matrix(rbinom(30 * 80, 1, 0.5), 30, 80)
+  K <- gaussian_kernel(X)
+  expect_equal(K, t(K))
+  expect_equal(unname(diag(K)), rep(1, 30))
+  expect_true(all(K > 0 & K <= 1))
+})
+
+test_that("top-20% overlap is 1 for a perfect ranking and 0 for a reversed one", {
+  obs <- 1:50
+  expect_equal(top_overlap(obs, obs), 1)
+  expect_equal(top_overlap(obs, -obs), 0)
+})
+
+test_that("cv_metrics returns the four metrics", {
+  m <- cv_metrics(1:20, (1:20) + rnorm(20, sd = 0.1))
+  expect_named(m, c("pearson", "spearman", "top20", "mse"))
+  expect_gt(m$pearson, 0.99)
+})
+
+test_that("paired verdict follows the rule fixed in the plan", {
+  expect_equal(paired_verdict(rep(0.03, 6)), "better")
+  expect_equal(paired_verdict(rep(-0.03, 6)), "worse")
+  expect_equal(paired_verdict(rep(0.01, 6)), "no meaningful difference")             # too small
+  expect_equal(paired_verdict(c(0.08, 0.08, 0.08, -0.01, -0.01, -0.01)), "no meaningful difference")  # inconsistent
+})
+
+test_that("effective sample size is near n for independent draws and small for a sticky chain", {
+  set.seed(4)
+  expect_gt(ess(rnorm(2000)), 1500)
+  expect_lt(ess(cumsum(rnorm(2000))), 100)
+})
+
+test_that("command-line flags are parsed", {
+  a <- c("--quick", "--reps=3", "--iter=600")
+  expect_true(get_flag(a, "quick", FALSE))
+  expect_equal(get_flag(a, "reps", 5), 3)
+  expect_equal(get_flag(a, "iter", 12000), 600)
+  expect_equal(get_flag(a, "workers", 4), 4)
+})

@@ -8,7 +8,8 @@ family does it best, and does modelling genotype × environment (G×E) interacti
 **Why it matters.** Genomic prediction lets breeders rank new lines from DNA alone, before costly multi-environment
 yield trials. Its value depends on how accurate the predictions are and under which conditions.
 
-**Status:** Week 1 of 4 complete (Nov 2026): data checked and the published benchmark reproduced. Full plan:
+**Status:** Week 1 of 4 complete (Nov 2026): data checked and the published benchmark reproduced, identically on
+Linux and Windows. Week 2 (single-environment model comparison) code is ready to run. Full plan:
 [P1 analysis plan](docs/PLAN.md).
 
 ## Data
@@ -28,6 +29,7 @@ CIMMYT historical bread wheat lines, shipped with the BGLR R package (`data(whea
 **Data checks** ([`results/00_data_checks.md`](results/00_data_checks.md))
 
 - No missing values; yield is already standardized.
+- Reproduced identically on Linux and on Windows (same seeds, same numbers to three decimals).
 - **96 of 1,279 markers have minor allele frequency below 0.05**, although the documentation says such markers were
   removed. They are kept, to match the benchmark; their effect is tested later.
 - **Two genetic groups** are visible on the first marker principal component (11.3% of variance): relevant for how
@@ -53,6 +55,29 @@ All 8 comparisons fall within the ±0.05 tolerance fixed in advance. Marker BLUP
 remains on the published fold partition (0.524), so it most likely reflects how the shrinkage was estimated (REML here),
 not the folds. GBLUP and marker ridge BLUP gave identical predictions in all 440 fits, as theory requires.
 
+## Week 2: single-environment models (to run)
+
+Six models, each fitted one environment at a time on the same fold sets as Week 1 (the published partition plus five
+random 10-fold sets), so every comparison is paired:
+
+| Model | Assumption about the genetics | Package |
+| --- | --- | --- |
+| Pedigree BLUP | relatives share yield in proportion to pedigree kinship | rrBLUP |
+| GBLUP (reference) | many small additive marker effects | rrBLUP |
+| BayesB | most markers have no effect, a few larger ones | BGLR |
+| Bayesian LASSO | effects shrink unevenly; large ones shrink less | BGLR |
+| RKHS (Gaussian kernel) | similarity is a non-linear function of marker distance | BGLR |
+| Pedigree + markers | both relationship sources together | BGLR |
+
+Three scripts:
+
+- `02_single_env_models.R`: the comparison; predictive ability, Spearman, top-20% selection overlap, MSE; paired
+  differences from GBLUP with the rule fixed in advance (|difference| >= 0.02 and 5 of 6 fold sets agree).
+- `02b_convergence.R`: checks every Bayesian chain (effective sample size >= 100, stable halves). Bayesian LASSO runs
+  twice as many iterations because its chains mix more slowly.
+- `02c_structure_cv.R`: trains on one of the two genetic groups and predicts the other, against random splits of the
+  same size, to measure how much accuracy depends on relatedness between training and test lines.
+
 ## Reproduce (Windows, macOS or Linux)
 
 1. Install R 4.4 or later from [CRAN](https://cloud.r-project.org).
@@ -60,8 +85,17 @@ not the folds. GBLUP and marker ridge BLUP gave identical predictions in all 440
 
 ```bash
 Rscript install_packages.R                                   # one time
-Rscript -e "testthat::test_dir('tests/testthat')"            # 17 checks
-Rscript run_all.R                                            # Steps 0-1, about 3-4 minutes
+Rscript -e "testthat::test_dir('tests/testthat')"            # 34 checks
+Rscript run_all.R                                            # all steps
+```
+
+Before the full Week 2 run, time it with a short trial:
+
+```bash
+Rscript scripts/02_single_env_models.R --quick               # 1 fold set, short chains; prints a projected full run time
+Rscript scripts/02b_convergence.R                            # MCMC check, a few minutes
+Rscript scripts/02_single_env_models.R                       # full comparison (uses all cores but one, max 10)
+Rscript scripts/02c_structure_cv.R                           # under a minute
 ```
 
 On Windows, if `Rscript` is not recognized, use its full path, e.g.
@@ -73,6 +107,9 @@ On Windows, if `Rscript` is not recognized, use its full path, e.g.
 R/functions.R                     data loading, relationship matrices, folds, model fits, cross-validation
 scripts/00_data_checks.R          Step 0: checks and exploration
 scripts/01_reproduce_benchmark.R  Step 1: Crossa et al. (2010) reproduction
+scripts/02_single_env_models.R    Step 2: six-model comparison (parallel; --quick for a timing trial)
+scripts/02b_convergence.R         Step 2b: MCMC convergence check
+scripts/02c_structure_cv.R        Step 2c: prediction across genetic groups
 tests/testthat/                   unit tests (run on every push by GitHub Actions)
 results/                          tables, figures and run logs
 ```

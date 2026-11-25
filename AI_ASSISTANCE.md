@@ -7,13 +7,14 @@ so a reader can judge the work.
 
 | Tool | Version / model | Used for |
 | --- | --- | --- |
-| Claude (Anthropic) | – | Week 1 scaffold: R/functions.R, Step 0 and Step 1 scripts, tests, CI workflow |
+| Claude (Anthropic) | – | Week 1 and 2 scaffolds: R/functions.R, Step 0–2c scripts, tests, CI workflow |
 
 ## Log
 
 | Date | Task | What the AI produced | What I verified by hand |
 | --- | --- | --- | --- |
 | 2026-11-24 | Week 1 scripts | data checks, benchmark reproduction, 6 test groups (17 checks) | _to fill:_ read each script; reran on my laptop; checked the E1-E4 column mapping against the benchmark; checked the MAF finding |
+| 2026-11-25 | Week 2 scripts | six-model comparison (parallel), convergence check, structure check, 17 more tests | _to fill:_ read each script; reran --quick and the full run on my laptop; checked the convergence table and the groups plot |
 
 ## Rules I follow
 

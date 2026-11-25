@@ -7,14 +7,13 @@ so a reader can judge the work.
 
 | Tool | Version / model | Used for |
 | --- | --- | --- |
-| e.g., Claude Code | – | scaffolding, refactoring, writing tests |
-| e.g., GitHub Copilot | – | autocomplete |
+| Claude (Anthropic) | – | Week 1 scaffold: R/functions.R, Step 0 and Step 1 scripts, tests, CI workflow |
 
 ## Log
 
 | Date | Task | What the AI produced | What I verified by hand |
 | --- | --- | --- | --- |
-| YYYY-MM-DD | e.g., cross-validation loop | first draft of `src/cv.R` | fold assignment, seed handling; compared accuracy with the package example |
+| 2026-11-24 | Week 1 scripts | data checks, benchmark reproduction, 6 test groups (17 checks) | _to fill:_ read each script; reran on my laptop; checked the E1-E4 column mapping against the benchmark; checked the MAF finding |
 
 ## Rules I follow
 

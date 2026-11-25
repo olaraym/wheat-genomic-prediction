@@ -1,18 +1,6 @@
-# data and large outputs
-data/raw/
-*.bam
-*.fastq.gz
-*.fq.gz
-*.sra
-work/
-.nextflow*
-# environments and caches
-__pycache__/
-.pytest_cache/
 .Rhistory
 .RData
 .Rproj.user/
-.ipynb_checkpoints/
-# secrets
+*.Rproj
+results/sessionInfo.txt
 .env
-*.pem
